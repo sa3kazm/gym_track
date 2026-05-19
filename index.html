@@ -45,7 +45,7 @@
     .app {
       width: min(100%, 940px);
       margin: 0 auto;
-      padding: 18px 28px 112px;
+      padding: 18px 28px 96px;
     }
 
     .topbar {
@@ -112,7 +112,6 @@
 
     .progress-card {
       grid-column: 1 / -1;
-      min-height: 430px;
       padding: 28px;
     }
 
@@ -223,7 +222,7 @@
 
     .chart-wrap {
       position: relative;
-      min-height: 240px;
+      height: 240px;
       border-radius: 8px;
       overflow: hidden;
       background: rgba(20, 22, 34, .18);
@@ -410,7 +409,7 @@
     .actions,
     .detail-actions {
       display: grid;
-      grid-template-columns: 1fr 1fr;
+      grid-template-columns: 1fr;
       gap: 14px;
       margin-top: 24px;
     }
@@ -522,7 +521,7 @@
       border: 1px solid rgba(255,255,255,.035);
     }
 
-    .record.is-selected {
+    .records-card.is-expanded .record.is-selected {
       border-color: rgba(255, 76, 98, .7);
       box-shadow: inset 0 0 0 1px rgba(255, 76, 98, .25);
     }
@@ -644,7 +643,7 @@
 
     @media (max-width: 740px) {
       .app {
-        padding: 16px 16px 112px;
+        padding: 16px 16px 96px;
       }
 
       .layout,
@@ -787,7 +786,6 @@
             </svg>
             Зберегти
           </button>
-          <button class="action delete" id="clearForm" type="button">Очистити</button>
         </div>
       </article>
 
@@ -1121,13 +1119,6 @@
       showToast("Запис додано");
     }
 
-    function clearForm() {
-      workoutWeightInput.value = 0;
-      repsInput.value = 0;
-      workoutDateInput.valueAsDate = new Date();
-      showToast("Поля очищено");
-    }
-
     function getPointFromEvent(event, canvas, points) {
       const rect = canvas.getBoundingClientRect();
       const scaleX = canvas.width / rect.width;
@@ -1203,7 +1194,6 @@
     bodyWeightSlider.addEventListener("input", event => setBodyWeight(event.target.value));
     exerciseSelect.addEventListener("change", closeDetails);
     document.querySelector("#save").addEventListener("click", saveRecord);
-    document.querySelector("#clearForm").addEventListener("click", clearForm);
     backButton.addEventListener("click", closeDetails);
     document.querySelector("#saveEdit").addEventListener("click", saveDetails);
     document.querySelector("#deleteSelected").addEventListener("click", deleteSelectedRecord);
