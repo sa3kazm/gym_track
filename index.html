@@ -501,10 +501,47 @@
       font-size: 20px;
     }
 
+    .date-nav {
+      display: flex;
+      gap: 7px;
+      overflow-x: auto;
+      padding: 14px 0 4px;
+      scrollbar-width: none;
+    }
+
+    .date-nav::-webkit-scrollbar {
+      display: none;
+    }
+
+    .date-pill {
+      flex-shrink: 0;
+      padding: 5px 13px;
+      border-radius: 99px;
+      background: var(--panel-2);
+      border: 1px solid rgba(255, 255, 255, .06);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+      cursor: pointer;
+      transition: background .15s, color .15s, border-color .15s;
+      white-space: nowrap;
+    }
+
+    .date-pill:hover {
+      background: #3a3d50;
+      color: var(--text);
+    }
+
+    .date-pill.is-active {
+      background: var(--accent);
+      color: #fff;
+      border-color: var(--accent);
+    }
+
     .records {
       display: grid;
       gap: 10px;
-      margin-top: 20px;
+      margin-top: 12px;
       max-height: 250px;
       overflow: auto;
       padding-right: 4px;
@@ -813,6 +850,8 @@
           </div>
         </div>
 
+        <div class="date-nav" id="dateNav"></div>
+
         <div class="records" id="records">
           <p class="hint">Тут зʼявляться ваші записи.</p>
         </div>
@@ -880,6 +919,7 @@
     const workoutDateInput = document.querySelector("#workoutDate");
     const repsInput = document.querySelector("#reps");
     const recordsEl = document.querySelector("#records");
+    const dateNavEl = document.querySelector("#dateNav");
     const toast = document.querySelector("#toast");
     const tooltip = document.querySelector("#tooltip");
     const bodyCanvas = document.querySelector("#bodyChart");
@@ -902,8 +942,11 @@
     let bodyPoints = [];
     let exercisePoints = [];
     let selectedRecordId = null;
+    let selectedDate = null; // null = усі дати
 
     workoutDateInput.valueAsDate = new Date();
+
+    // ── Утиліти ──────────────────────────────────────────────────────────────
 
     function showToast(text) {
       toast.textContent = text;
@@ -919,16 +962,37 @@
       bodyWeightSlider.style.setProperty("--fill", `${(bodyWeight / 200) * 100}%`);
     }
 
-    function selectedRecords() {
-      return records
-        .filter(record => record.exercise === exerciseSelect.value)
-        .sort((a, b) => new Date(a.date) - new Date(b.date));
-    }
-
     function formatDate(value) {
       const date = new Date(`${value}T00:00:00`);
       return date.toLocaleDateString("uk-UA", { day: "2-digit", month: "2-digit" });
     }
+
+    function formatFullDate(value) {
+      const date = new Date(`${value}T00:00:00`);
+      return date.toLocaleDateString("uk-UA", { day: "2-digit", month: "short" });
+    }
+
+    // ── Записи ───────────────────────────────────────────────────────────────
+
+    function getUniqueDates() {
+      return [...new Set(
+        records
+          .filter(r => r.exercise === exerciseSelect.value)
+          .map(r => r.date)
+      )].sort((a, b) => new Date(b) - new Date(a));
+    }
+
+    function selectedRecords() {
+      return records
+        .filter(record => {
+          const exMatch = record.exercise === exerciseSelect.value;
+          const dateMatch = selectedDate ? record.date === selectedDate : true;
+          return exMatch && dateMatch;
+        })
+        .sort((a, b) => new Date(a.date) - new Date(b.date));
+    }
+
+    // ── Графіки ──────────────────────────────────────────────────────────────
 
     function drawGrid(ctx, left, top, chartW, chartH, maxValue, color = "#7e8293") {
       ctx.strokeStyle = "rgba(255,255,255,.06)";
@@ -999,10 +1063,7 @@
       const data = selectedRecords();
       const width = bodyCanvas.width;
       const height = bodyCanvas.height;
-      const left = 48;
-      const right = 20;
-      const top = 24;
-      const bottom = 40;
+      const left = 48, right = 20, top = 24, bottom = 40;
       const chartW = width - left - right;
       const chartH = height - top - bottom;
 
@@ -1028,10 +1089,7 @@
       const data = selectedRecords();
       const width = exerciseCanvas.width;
       const height = exerciseCanvas.height;
-      const left = 48;
-      const right = 20;
-      const top = 24;
-      const bottom = 40;
+      const left = 48, right = 20, top = 24, bottom = 40;
       const chartW = width - left - right;
       const chartH = height - top - bottom;
 
@@ -1061,14 +1119,45 @@
       drawExerciseChart();
     }
 
+    // ── Рендер записів + навігація по датах ──────────────────────────────────
+
+    function renderDateNav() {
+      const dates = getUniqueDates();
+
+      if (!dates.length) {
+        dateNavEl.innerHTML = "";
+        return;
+      }
+
+      dateNavEl.innerHTML = `
+        <button class="date-pill ${!selectedDate ? "is-active" : ""}" data-date="">Усі</button>
+        ${dates.map(d => `
+          <button class="date-pill ${selectedDate === d ? "is-active" : ""}" data-date="${d}">
+            ${formatFullDate(d)}
+          </button>
+        `).join("")}
+      `;
+
+      dateNavEl.querySelectorAll(".date-pill").forEach(btn => {
+        btn.addEventListener("click", () => {
+          selectedDate = btn.dataset.date || null;
+          // Якщо відкрите редагування — закрити
+          if (selectedRecordId) closeDetails();
+          else renderRecords();
+        });
+      });
+    }
+
     function renderRecords() {
       const data = selectedRecords();
-      document.querySelector("#totalRecords").textContent = data.length;
+      document.querySelector("#totalRecords").textContent = records.filter(r => r.exercise === exerciseSelect.value).length;
+
+      renderDateNav();
 
       if (!data.length) {
         document.querySelector("#bestWeight").textContent = "0 кг";
         document.querySelector("#progressDiff").textContent = "0 кг";
-        recordsEl.innerHTML = `<p class="hint">Тут зʼявляться ваші записи.</p>`;
+        recordsEl.innerHTML = `<p class="hint">${selectedDate ? "Немає записів за цей день." : "Тут зʼявляться ваші записи."}</p>`;
         drawCharts();
         return;
       }
@@ -1079,7 +1168,7 @@
       document.querySelector("#progressDiff").textContent = `${diff >= 0 ? "+" : ""}${diff} кг`;
 
       recordsEl.innerHTML = data.slice().reverse().map(item => `
-        <div class="record ${item.id === selectedRecordId ? "is-selected" : ""}">
+        <div class="record ${item.id === selectedRecordId ? "is-selected" : ""}" data-id="${item.id}" style="cursor:pointer">
           <div>
             <strong>${item.exercise}</strong>
             <span>${formatDate(item.date)} · вага тіла ${item.bodyWeight} кг · повторення ${item.reps}</span>
@@ -1087,23 +1176,23 @@
           <b>${item.workoutWeight} кг</b>
         </div>
       `).join("");
+
+      recordsEl.querySelectorAll(".record").forEach(el => {
+        el.addEventListener("click", () => openDetails(el.dataset.id));
+      });
+
       drawCharts();
     }
+
+    // ── Збереження ───────────────────────────────────────────────────────────
 
     function saveRecord() {
       const workoutWeight = Number(workoutWeightInput.value) || 0;
       const reps = Number(repsInput.value) || 0;
       const date = workoutDateInput.value;
 
-      if (!date) {
-        showToast("Вкажіть дату");
-        return;
-      }
-
-      if (workoutWeight <= 0) {
-        showToast("Введіть вагу у вправі");
-        return;
-      }
+      if (!date) { showToast("Вкажіть дату"); return; }
+      if (workoutWeight <= 0) { showToast("Введіть вагу у вправі"); return; }
 
       records.push({
         id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now()),
@@ -1119,6 +1208,8 @@
       showToast("Запис додано");
     }
 
+    // ── Hover/Click на графіку ────────────────────────────────────────────────
+
     function getPointFromEvent(event, canvas, points) {
       const rect = canvas.getBoundingClientRect();
       const scaleX = canvas.width / rect.width;
@@ -1129,11 +1220,7 @@
     }
 
     function showTooltip(event, point, mode) {
-      if (!point) {
-        tooltip.classList.remove("show");
-        return;
-      }
-
+      if (!point) { tooltip.classList.remove("show"); return; }
       const record = point.record;
       tooltip.innerHTML = mode === "body"
         ? `${record.bodyWeight} кг<br><span style="color:#a9adba">${formatDate(record.date)}</span>`
@@ -1142,6 +1229,8 @@
       tooltip.style.top = `${event.clientY}px`;
       tooltip.classList.add("show");
     }
+
+    // ── Деталі / редагування ─────────────────────────────────────────────────
 
     function openDetails(recordId) {
       const record = records.find(item => item.id === recordId);
@@ -1154,7 +1243,13 @@
       editDate.value = record.date;
       editNote.value = record.note || "";
 
+      // Анімуємо collapse → після анімації прибираємо з потоку (фіксує баг із зазором)
       inputCard.classList.add("is-collapsed");
+      window.clearTimeout(openDetails._hideTimer);
+      openDetails._hideTimer = window.setTimeout(() => {
+        inputCard.style.display = "none";
+      }, 540);
+
       recordsCard.classList.add("is-expanded", "is-expanding");
       window.setTimeout(() => recordsCard.classList.remove("is-expanding"), 1200);
       renderRecords();
@@ -1162,8 +1257,17 @@
 
     function closeDetails() {
       selectedRecordId = null;
+
+      // Повертаємо у потік і одразу запускаємо expand-анімацію
+      window.clearTimeout(openDetails._hideTimer);
+      inputCard.style.display = "";
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          inputCard.classList.remove("is-collapsed");
+        });
+      });
+
       recordsCard.classList.remove("is-expanded", "is-expanding");
-      inputCard.classList.remove("is-collapsed");
       renderRecords();
     }
 
@@ -1183,16 +1287,22 @@
     function deleteSelectedRecord() {
       const index = records.findIndex(item => item.id === selectedRecordId);
       if (index === -1) return;
-
       records.splice(index, 1);
       closeDetails();
       showToast("Запис видалено");
     }
 
+    // ── Events ───────────────────────────────────────────────────────────────
+
     document.querySelector("#minus").addEventListener("click", () => setBodyWeight(bodyWeight - 1));
     document.querySelector("#plus").addEventListener("click", () => setBodyWeight(bodyWeight + 1));
     bodyWeightSlider.addEventListener("input", event => setBodyWeight(event.target.value));
-    exerciseSelect.addEventListener("change", closeDetails);
+
+    exerciseSelect.addEventListener("change", () => {
+      selectedDate = null;
+      closeDetails();
+    });
+
     document.querySelector("#save").addEventListener("click", saveRecord);
     backButton.addEventListener("click", closeDetails);
     document.querySelector("#saveEdit").addEventListener("click", saveDetails);
@@ -1206,6 +1316,7 @@
       const point = getPointFromEvent(event, exerciseCanvas, exercisePoints);
       if (point) openDetails(point.record.id);
     });
+
     window.addEventListener("resize", drawCharts);
 
     setBodyWeight(0);
