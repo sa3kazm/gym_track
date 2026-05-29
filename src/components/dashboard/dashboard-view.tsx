@@ -137,6 +137,9 @@ export function DashboardView() {
           </div>
           <div className="flex flex-wrap gap-2">
             <Button variant="outline" asChild>
+              <Link href="/nutrition">Харчування</Link>
+            </Button>
+            <Button variant="outline" asChild>
               <Link href="/program">Програма</Link>
             </Button>
             <Button variant="outline" asChild>

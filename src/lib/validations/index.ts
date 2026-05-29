@@ -2,6 +2,8 @@ export * from "./enums";
 export * from "./onboarding";
 export * from "./body-measurements";
 export * from "./program-generation";
+export * from "./program-session";
+export * from "./nutrition";
 export * from "./profile";
 export * from "./body-metrics";
 export * from "./training-preferences";

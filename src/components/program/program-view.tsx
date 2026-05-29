@@ -53,6 +53,9 @@ export function ProgramView() {
         </div>
         <div className="flex gap-2">
           <Button variant="outline" asChild>
+            <Link href="/nutrition">Харчування</Link>
+          </Button>
+          <Button variant="outline" asChild>
             <Link href="/dashboard">Аналіз тіла</Link>
           </Button>
           <Button variant="ghost" asChild>

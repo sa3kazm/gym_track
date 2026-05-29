@@ -1,4 +1,5 @@
 import { PrismaClient } from "@prisma/client";
+import { BUILTIN_FOODS } from "../src/lib/data/builtin-foods";
 
 const prisma = new PrismaClient();
 
@@ -54,7 +55,18 @@ async function main() {
     }
   }
 
-  console.log(`✅ Seed: ${BUILTIN_EXERCISES.length} вправ`);
+  for (const f of BUILTIN_FOODS) {
+    const exists = await prisma.food.findFirst({
+      where: { name: f.name, profileId: null, isCustom: false },
+    });
+    if (!exists) {
+      await prisma.food.create({
+        data: { ...f, profileId: null, isCustom: false },
+      });
+    }
+  }
+
+  console.log(`✅ Seed: ${BUILTIN_EXERCISES.length} вправ, ${BUILTIN_FOODS.length} продуктів`);
 }
 
 main()

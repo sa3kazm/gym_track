@@ -56,6 +56,27 @@ enum WeightUnit {
   LB
 }
 
+enum FoodCategory {
+  MEAT
+  FISH
+  DAIRY
+  GRAINS
+  VEGETABLES
+  FRUITS
+  NUTS
+  OILS
+  SWEETS
+  DRINKS
+  OTHER
+}
+
+enum MealType {
+  BREAKFAST
+  LUNCH
+  DINNER
+  SNACKS
+}
+
 // ─── Profile ─────────────────────────────────────────────────────────────────
 
 model Profile {
@@ -76,6 +97,8 @@ model Profile {
   exercises            Exercise[]
   workoutPlans         WorkoutPlan[]
   workoutSessions      WorkoutSession[]
+  foods                Food[]
+  nutritionEntries     NutritionEntry[]
 }
 
 // ─── BodyMetrics (історія ваги / заміри тіла) ───────────────────────────────
@@ -185,4 +208,47 @@ model WorkoutSession {
 
   @@index([profileId, sessionDate])
   @@index([workoutPlanId])
+}
+
+// ─── Food (база продуктів) ───────────────────────────────────────────────────
+
+model Food {
+  id             String       @id @default(cuid())
+  profileId      String?
+  name           String
+  category       FoodCategory @default(OTHER)
+  caloriesPer100 Float
+  proteinPer100  Float
+  fatPer100      Float
+  carbsPer100    Float
+  isCustom       Boolean      @default(false)
+  createdAt      DateTime     @default(now())
+
+  profile  Profile?          @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  entries  NutritionEntry[]
+
+  @@index([profileId])
+  @@index([name])
+}
+
+// ─── NutritionEntry (запис їжі за день) ──────────────────────────────────────
+
+model NutritionEntry {
+  id        String   @id @default(cuid())
+  profileId String
+  logDate   DateTime
+  mealType  MealType
+  foodId    String
+  grams     Float
+  calories  Float
+  protein   Float
+  fat       Float
+  carbs     Float
+  createdAt DateTime @default(now())
+
+  profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  food    Food    @relation(fields: [foodId], references: [id], onDelete: Restrict)
+
+  @@index([profileId, logDate])
+  @@index([foodId])
 }

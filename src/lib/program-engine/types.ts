@@ -65,6 +65,11 @@ export interface GeneratedExercisePrescription {
   notes: string;
 }
 
+export interface LoggedSet {
+  weightKg: number;
+  reps: number;
+}
+
 export interface GeneratedWorkoutSession {
   id: string;
   weekNumber: number;
@@ -76,6 +81,10 @@ export interface GeneratedWorkoutSession {
   exercises: GeneratedExercisePrescription[];
   estimatedMinutes: number;
   completed?: boolean;
+  /** ID запису в WorkoutSession (Prisma) */
+  workoutLogId?: string;
+  totalVolumeLogged?: number;
+  completedAt?: string;
 }
 
 export interface MonthlyProgram {

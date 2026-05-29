@@ -33,6 +33,9 @@ export const generatedSessionSchema = z.object({
   exercises: z.array(generatedExerciseSchema),
   estimatedMinutes: z.number(),
   completed: z.boolean().optional(),
+  workoutLogId: z.string().optional(),
+  totalVolumeLogged: z.number().optional(),
+  completedAt: z.string().optional(),
 });
 
 export const programScheduleV2Schema = z.object({

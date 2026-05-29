@@ -5,6 +5,8 @@ import { motion } from "framer-motion";
 import type { MonthlyProgram } from "@/lib/program-engine";
 import { getSplitLabel } from "@/lib/program-engine/split-selector";
 import { WorkoutSessionCard } from "@/components/program/workout-session-card";
+import { WeekProgressChart } from "@/components/program/week-progress-chart";
+import { ProgramExportButtons } from "@/components/program/program-export-buttons";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -19,6 +21,7 @@ export function ProgramMonthView({
   onSessionUpdate,
 }: ProgramMonthViewProps) {
   const [activeWeek, setActiveWeek] = useState(1);
+  const [chartKey, setChartKey] = useState(0);
 
   const weeks = useMemo(() => {
     const map = new Map<number, typeof program.sessions>();
@@ -36,13 +39,9 @@ export function ProgramMonthView({
     (completed / program.sessions.length) * 100
   );
 
-  const toggleComplete = async (sessionId: string, completed: boolean) => {
-    await fetch(`/api/program/sessions/${sessionId}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ completed }),
-    });
+  const handleUpdate = () => {
     onSessionUpdate();
+    setChartKey((k) => k + 1);
   };
 
   return (
@@ -66,6 +65,10 @@ export function ProgramMonthView({
           <p className="text-xs text-muted-foreground">виконано</p>
         </div>
       </motion.div>
+
+      <ProgramExportButtons />
+
+      <WeekProgressChart key={chartKey} />
 
       <div className="flex flex-wrap gap-2">
         {Array.from({ length: program.weeks }, (_, i) => i + 1).map((w) => {
@@ -93,7 +96,7 @@ export function ProgramMonthView({
           <WorkoutSessionCard
             key={session.id}
             session={session}
-            onToggleComplete={toggleComplete}
+            onSessionUpdate={handleUpdate}
           />
         ))}
       </div>

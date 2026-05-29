@@ -53,6 +53,9 @@ export function HomeClient() {
               <Button variant="secondary" asChild>
                 <Link href="/program">Програма тренувань</Link>
               </Button>
+              <Button variant="secondary" asChild>
+                <Link href="/nutrition">Харчування</Link>
+              </Button>
             </>
           )}
           <Button variant="outline" asChild>
