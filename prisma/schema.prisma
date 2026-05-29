@@ -1,0 +1,188 @@
+// Gym & Nutrition Tracker — схема БД (Частина 1)
+// https://www.prisma.io/docs
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Enums ───────────────────────────────────────────────────────────────────
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+}
+
+enum Goal {
+  LOSS
+  GAIN
+  MAINTAIN
+}
+
+enum ActivityLevel {
+  SEDENTARY
+  LIGHT
+  MODERATE
+  ACTIVE
+  VERY_ACTIVE
+}
+
+enum ExerciseCategory {
+  CHEST
+  BACK
+  LEGS
+  SHOULDERS
+  ARMS
+  CORE
+  OTHER
+}
+
+enum Equipment {
+  BARBELL
+  DUMBBELL
+  CABLE
+  MACHINE
+  BODYWEIGHT
+  OTHER
+}
+
+enum WeightUnit {
+  KG
+  LB
+}
+
+// ─── Profile ─────────────────────────────────────────────────────────────────
+
+model Profile {
+  id        String   @id @default(cuid())
+  name      String   @default("")
+  age       Int?
+  gender    Gender   @default(MALE)
+  heightCm  Float?
+  targetWeightKg Float?
+  goal      Goal     @default(MAINTAIN)
+  activityLevel ActivityLevel @default(MODERATE)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  bodyMetrics          BodyMetrics[]
+  bodyMeasurements     BodyMeasurements?
+  trainingPreferences  TrainingPreferences?
+  exercises            Exercise[]
+  workoutPlans         WorkoutPlan[]
+  workoutSessions      WorkoutSession[]
+}
+
+// ─── BodyMetrics (історія ваги / заміри тіла) ───────────────────────────────
+
+model BodyMetrics {
+  id             String   @id @default(cuid())
+  profileId      String
+  recordedAt     DateTime @default(now())
+  weightKg       Float
+  bodyFatPercent Float?
+  note           String?
+
+  profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@index([profileId, recordedAt])
+}
+
+// ─── BodyMeasurements (обхвати для McCallum / слабкі зони) ───────────────────
+
+model BodyMeasurements {
+  id        String   @id @default(cuid())
+  profileId String   @unique
+  wristCm   Float?
+  neckCm    Float?
+  chestCm   Float?
+  waistCm   Float?
+  hipsCm    Float?
+  bicepCm   Float?
+  forearmCm Float?
+  thighCm   Float?
+  calfCm    Float?
+  updatedAt DateTime @updatedAt
+
+  profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+}
+
+// ─── TrainingPreferences (норми КБЖУ, таймер, одиниці) ──────────────────────
+
+model TrainingPreferences {
+  id                  String   @id @default(cuid())
+  profileId           String   @unique
+  defaultRestSeconds  Int      @default(90)
+  preferredSplit      String?
+  weightUnit          WeightUnit @default(KG)
+  dailyCalories       Int      @default(2000)
+  dailyProteinG       Int      @default(150)
+  dailyFatG           Int      @default(65)
+  dailyCarbsG         Int      @default(220)
+  dailyWaterMl        Int      @default(2000)
+  updatedAt           DateTime @updatedAt
+
+  profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+}
+
+// ─── Exercise (бібліотека вправ) ─────────────────────────────────────────────
+
+model Exercise {
+  id        String           @id @default(cuid())
+  profileId String?
+  name      String
+  category  ExerciseCategory @default(OTHER)
+  equipment Equipment        @default(OTHER)
+  isCustom  Boolean          @default(false)
+  createdAt DateTime         @default(now())
+
+  profile Profile? @relation(fields: [profileId], references: [id], onDelete: SetNull)
+
+  @@index([profileId])
+  @@index([name])
+}
+
+// ─── WorkoutPlan (програма: PPL, Upper/Lower тощо) ───────────────────────────
+
+model WorkoutPlan {
+  id          String   @id @default(cuid())
+  profileId   String
+  name        String
+  description String?
+  /// JSON: { days: WorkoutPlanDay[] }
+  schedule    String   @default("{\"days\":[]}")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  profile  Profile          @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  sessions WorkoutSession[]
+
+  @@index([profileId])
+}
+
+// ─── WorkoutSession (щоденник тренування) ────────────────────────────────────
+
+model WorkoutSession {
+  id            String    @id @default(cuid())
+  profileId     String
+  workoutPlanId String?
+  planDayId     String?
+  sessionDate   DateTime  @default(now())
+  startedAt     DateTime  @default(now())
+  endedAt       DateTime?
+  totalVolume   Float     @default(0)
+  /// JSON: WorkoutSessionExercise[]
+  exercises     String    @default("[]")
+  notes         String?
+
+  profile     Profile      @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  workoutPlan WorkoutPlan? @relation(fields: [workoutPlanId], references: [id], onDelete: SetNull)
+
+  @@index([profileId, sessionDate])
+  @@index([workoutPlanId])
+}
